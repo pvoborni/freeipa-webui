@@ -1,103 +1,85 @@
-import React, { useState } from "react";
+import React from "react";
 // PatternFly
 import { Pagination, ToolbarItemVariant, Text } from "@patternfly/react-core";
 // Icons
 import OutlinedQuestionCircleIcon from "@patternfly/react-icons/dist/esm/icons/outlined-question-circle-icon";
-// Data types
-import { Host } from "src/utils/datatypes/globalDataTypes";
+
 // Layouts
 import SecondaryButton from "../layouts/SecondaryButton";
 import TextLayout from "src/components/layouts/TextLayout";
 import ToolbarLayout, { ToolbarItemAlignment } from "../layouts/ToolbarLayout";
 
-interface PageData {
+interface ToolbarProps {
+  // pagination
+  itemCount: number;
   page: number;
-  changeSetPage: (
+  onSetPage: (
     newPage: number,
-    perPage: number | undefined,
-    startIdx: number | undefined,
-    endIdx: number | undefined
   ) => void;
   perPage: number;
-  changePerPageSelect: (
+  onPerPageSelect: (
     newPerPage: number,
-    newPage: number,
-    startIdx: number | undefined,
-    endIdx: number | undefined
   ) => void;
-}
 
-interface ButtonData {
-  onClickAddHandler: () => void;
-  onClickDeleteHandler: () => void;
+  // buttons
+  onRefreshClick: () => void;
+  onAddClick: () => void;
+  onDeleteClick: () => void;
   isDeleteButtonDisabled: boolean;
 }
 
-export interface PropsToToolbar {
-  pageRepo: Host[];
-  shownItems: Host[];
-  updateShownElementsList: (newShownElementsList: Host[]) => void;
-  pageData: PageData;
-  buttonData: ButtonData;
-}
-
-const ManagedByToolbar = (props: PropsToToolbar) => {
-  // -- Pagination
-  const [page, setPage] = useState(1);
-  const [perPage, setPerPage] = useState(10);
+const ManagedByToolbar = (props: ToolbarProps) => {
 
   // - Page setters
   const onSetPage = (
     _event: React.MouseEvent | React.KeyboardEvent | MouseEvent,
     newPage: number,
-    perPage: number | undefined,
-    startIdx: number | undefined,
-    endIdx: number | undefined
   ) => {
-    setPage(newPage);
-    props.updateShownElementsList(props.pageRepo.slice(startIdx, endIdx));
-    props.pageData.changeSetPage(newPage, perPage, startIdx, endIdx);
+    props.onSetPage(newPage)
   };
 
   const onPerPageSelect = (
     _event: React.MouseEvent | React.KeyboardEvent | MouseEvent,
     newPerPage: number,
-    newPage: number,
-    startIdx: number | undefined,
-    endIdx: number | undefined
   ) => {
-    setPerPage(newPerPage);
-    props.updateShownElementsList(props.pageRepo.slice(startIdx, endIdx));
-    props.pageData.changePerPageSelect(newPerPage, newPage, startIdx, endIdx);
+    props.onPerPageSelect(newPerPage)
   };
 
   // 'Hosts' toolbar elements data
   const hostsToolbarData = {
     refreshButton: {
-      id: "hosts-button-refresh",
+      id: "button-refresh",
+      onClickHandler: props.onRefreshClick,
     },
     deleteButton: {
-      id: "hosts-button-delete",
-      isDisabledHandler: props.buttonData.isDeleteButtonDisabled,
-      onClickHandler: props.buttonData.onClickDeleteHandler,
+      id: "button-delete",
+      isDisabledHandler: props.isDeleteButtonDisabled,
+      onClickHandler: props.onDeleteClick,
     },
     addButton: {
-      id: "hosts-button-add",
-      onClickHandler: props.buttonData.onClickAddHandler,
+      id: "button-add",
+      onClickHandler: props.onAddClick,
     },
-    separatorId: "hosts-separator",
+    separatorId: "separator",
     helpIcon: {
-      id: "hosts-help-icon",
+      id: "help-icon",
       // href: TDB
     },
-    paginationId: "hosts-pagination",
+    paginationId: "pagination",
   };
 
   const toolbarFields = [
     {
-      id: hostsToolbarData.refreshButton.id,
+      id: "button-refresh",
       key: 0,
-      element: <SecondaryButton name="refresh">Refresh</SecondaryButton>,
+      element: (
+        <SecondaryButton
+          name="refresh"
+          onClickHandler={props.onRefreshClick}
+        >
+          Refresh
+        </SecondaryButton>
+      ),
     },
     {
       id: hostsToolbarData.deleteButton.id,
@@ -146,9 +128,9 @@ const ManagedByToolbar = (props: PropsToToolbar) => {
       key: 8,
       element: (
         <Pagination
-          itemCount={props.pageRepo.length}
-          perPage={perPage}
-          page={page}
+          itemCount={props.itemCount}
+          perPage={props.perPage}
+          page={props.page}
           onSetPage={onSetPage}
           widgetId="pagination-options-menu-top"
           onPerPageSelect={onPerPageSelect}

@@ -18,6 +18,7 @@ import { useAppSelector } from "src/store/hooks";
 // Others
 import ManagedByTable from "src/components/ManagedBy/ManagedByTable";
 import ManagedByToolbar from "src/components/ManagedBy/ManagedByToolbar";
+import ComplexPagination from "src/components/tables/ComplexPagination";
 // Modals
 import ManagedByAddModal from "src/components/ManagedBy/ManagedByAddModal";
 import ManagedByDeleteModal from "src/components/ManagedBy/ManagedByDeleteModal";
@@ -30,13 +31,21 @@ const HostsManagedBy = (props: PropsToHostsManagedBy) => {
   // List of currents elements on the list (Dummy data)
   const [hostsList, setHostsList] = useState<Host[]>([props.host]);
 
+  // -- Pagination
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
+
+  const startIdx = (page - 1) * perPage
+  const endIdx = startIdx + perPage - 1
+  const shownHosts = hostsList.slice(startIdx, endIdx);
+
+
   // Some data is updated when any group list is altered
   //  - The whole list itself
   //  - The slice of data to show (considering the pagination)
   //  - Number of items for a specific list
   const updateGroupRepository = (newHostsList: Host[]) => {
     setHostsList(newHostsList);
-    setShownHostsList(hostsList.slice(0, perPage));
   };
 
   // Retrieve available hosts data from Redux
@@ -66,9 +75,6 @@ const HostsManagedBy = (props: PropsToHostsManagedBy) => {
   // - This helps with the reload state
   const [showTableRows, setShowTableRows] = useState(false);
 
-  // -- Pagination
-  const [page, setPage] = useState(1);
-  const [perPage, setPerPage] = useState(10);
 
   // -- Name of the hosts selected on the table (to remove)
   const [hostsSelected, setHostsSelected] = useState<string[]>([]);
@@ -90,59 +96,6 @@ const HostsManagedBy = (props: PropsToHostsManagedBy) => {
 
   const updateIsDeletion = (option: boolean) => {
     setIsDeletion(option);
-  };
-
-  // Member groups displayed on the first page
-  const [shownHostsList, setShownHostsList] = useState(
-    hostsList.slice(0, perPage)
-  );
-
-  const updateShownHostsList = (newShownHostsList: Host[]) => {
-    setShownHostsList(newShownHostsList);
-  };
-
-  // Pages setters (to manage pagination as an event)
-  const onSetPage = (
-    _event: React.MouseEvent | React.KeyboardEvent | MouseEvent,
-    newPage: number,
-    perPage: number | undefined,
-    startIdx: number | undefined,
-    endIdx: number | undefined
-  ) => {
-    setPage(newPage);
-    setShownHostsList(hostsList.slice(startIdx, endIdx));
-  };
-
-  const onPerPageSelect = (
-    _event: React.MouseEvent | React.KeyboardEvent | MouseEvent,
-    newPerPage: number,
-    newPage: number,
-    startIdx: number | undefined,
-    endIdx: number | undefined
-  ) => {
-    setPerPage(newPerPage);
-    setShownHostsList(hostsList.slice(startIdx, endIdx));
-  };
-
-  // Page setters passed as props
-  const changeSetPage = (
-    newPage: number,
-    perPage: number | undefined,
-    startIdx: number | undefined,
-    endIdx: number | undefined
-  ) => {
-    setPage(newPage);
-    setShownHostsList(hostsList.slice(startIdx, endIdx));
-  };
-
-  const changePerPageSelect = (
-    newPerPage: number,
-    newPage: number,
-    startIdx: number | undefined,
-    endIdx: number | undefined
-  ) => {
-    setPerPage(newPerPage);
-    setShownHostsList(hostsList.slice(startIdx, endIdx));
   };
 
   // -- Modal
@@ -169,25 +122,11 @@ const HostsManagedBy = (props: PropsToHostsManagedBy) => {
     setPage(1);
     if (showTableRows) setShowTableRows(false);
     setTimeout(() => {
-      setShownHostsList(hostsList.slice(0, perPage));
       setShowTableRows(true);
     }, 1000);
   }, [hostsList]);
 
   // Data wrappers
-  // - ManagedByToolbar
-  const toolbarPageData = {
-    page,
-    changeSetPage,
-    perPage,
-    changePerPageSelect,
-  };
-
-  const toolbarButtonData = {
-    onClickAddHandler,
-    onClickDeleteHandler,
-    isDeleteButtonDisabled,
-  };
 
   // - ManagedByTable
   const tableButtonData = {
@@ -245,14 +184,19 @@ const HostsManagedBy = (props: PropsToHostsManagedBy) => {
             }
           >
             <ManagedByToolbar
-              pageRepo={hostsList}
-              shownItems={shownHostsList}
-              updateShownElementsList={updateShownHostsList}
-              pageData={toolbarPageData}
-              buttonData={toolbarButtonData}
+              itemCount={hostsList.length}
+              page={page}
+              onSetPage={setPage}
+              perPage={perPage}
+              onPerPageSelect={setPerPage}
+
+              onRefreshClick={()=> null}
+              onAddClick={onClickAddHandler}
+              onDeleteClick={onClickDeleteHandler}
+              isDeleteButtonDisabled={isDeleteButtonDisabled}
             />
             <ManagedByTable
-              list={shownHostsList}
+              list={shownHosts}
               tableName="Hosts"
               showTableRows={showTableRows}
               updateElementsSelected={updateHostsSelected}
@@ -260,16 +204,12 @@ const HostsManagedBy = (props: PropsToHostsManagedBy) => {
             />
           </Tab>
         </Tabs>
-        <Pagination
-          perPageComponent="button"
-          className="pf-u-pb-0 pf-u-pr-md"
+        <ComplexPagination
           itemCount={hostsList.length}
-          widgetId="pagination-options-menu-bottom"
-          perPage={perPage}
           page={page}
-          variant={PaginationVariant.bottom}
-          onSetPage={onSetPage}
-          onPerPageSelect={onPerPageSelect}
+          onSetPage={setPage}
+          perPage={perPage}
+          onPerPageSelect={setPerPage}
         />
       </PageSection>
       <>
