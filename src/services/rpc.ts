@@ -10,6 +10,13 @@ import {
 import { API_VERSION_BACKUP } from "src/utils/utils";
 import { Metadata } from "src/utils/datatypes/globalDataTypes";
 
+export type UserFullData = {
+  user?: Record<string, unknown>;
+  pwPolicy?: Record<string, unknown>;
+  krbtPolicy?: Record<string, unknown>;
+  cert?: Record<string, unknown>;
+};
+
 export interface UIDType {
   dn: string;
   uid: string[];
@@ -230,12 +237,46 @@ export const api = createApi({
         response.result,
       providesTags: ["ObjectMetadata"],
     }),
-    getUsersFullData: build.query<BatchResult[], Command[]>({
-      query: (payloadData: Command[], apiVersion?: string) => {
-        return getBatchCommand(payloadData, apiVersion || API_VERSION_BACKUP);
+    getUsersFullData: build.query<UserFullData, string>({
+      query: (userId: string, apiVersion?: string) => {
+        const userShowCommand: Command = {
+          method: "user_show",
+          params: [userId, { all: true, rights: true }],
+        };
+
+        const pwpolicyShowCommand: Command = {
+          method: "pwpolicy_show",
+          params: [[], { user: userId[0], all: true, rights: true }],
+        };
+
+        const krbtpolicyShowCommand: Command = {
+          method: "krbtpolicy_show",
+          params: [userId, { all: true, rights: true }],
+        };
+
+        const certFindCommand: Command = {
+          method: "cert_find",
+          params: [[], { user: userId[0], sizelimit: 0, all: true }],
+        };
+
+        const batchPayload: Command[] = [
+          userShowCommand,
+          pwpolicyShowCommand,
+          krbtpolicyShowCommand,
+          certFindCommand,
+        ];
+
+        return getBatchCommand(batchPayload, apiVersion || API_VERSION_BACKUP);
       },
-      transformResponse: (response: BatchResponse): BatchResult[] =>
-        response.result.results,
+      transformResponse: (response: BatchResponse): UserFullData => {
+        const results = response.result.results;
+        return {
+          user: results[0].result,
+          pwPolicy: results[1].result,
+          krbtPolicy: results[2].result,
+          cert: results[3].result,
+        };
+      },
       providesTags: ["FullUserData"],
     }),
   }),
