@@ -45,6 +45,7 @@ export interface PropsToUserSettings {
   krbPolicyData: any;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   certData: any;
+  onRefresh?: () => void;
   from: "active-users" | "stage-users" | "preserved-users";
 }
 
@@ -84,7 +85,11 @@ const UserSettings = (props: PropsToUserSettings) => {
   const toolbarFields = [
     {
       key: 0,
-      element: <SecondaryButton>Refresh</SecondaryButton>,
+      element: (
+        <SecondaryButton onClickHandler={props.onRefresh}>
+          Refresh
+        </SecondaryButton>
+      ),
     },
     {
       key: 1,

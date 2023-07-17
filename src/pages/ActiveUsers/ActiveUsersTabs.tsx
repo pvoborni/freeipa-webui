@@ -95,6 +95,7 @@ const ActiveUsersTabs = () => {
               krbPolicyData={userSettingsData.krbtPolicyData}
               certData={userSettingsData.certData}
               onUserChange={setUser}
+              onRefresh={userSettingsData.refetch}
               from="active-users"
             />
           </Tab>

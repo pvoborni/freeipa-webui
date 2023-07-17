@@ -14,6 +14,7 @@ type UserSettingsData = {
   pwPolicyData?: Record<string, unknown>;
   krbtPolicyData?: Record<string, unknown>;
   certData?: Record<string, unknown>;
+  refetch?: () => void;
 };
 
 const useUserSettingsData = (userId: string): UserSettingsData => {
@@ -29,6 +30,7 @@ const useUserSettingsData = (userId: string): UserSettingsData => {
   const settingsData = {
     isLoading: metadataLoading || isFullDataLoading,
     metadata,
+    refetch: userFullDataQuery.refetch,
   } as UserSettingsData;
 
   if (userFullData) {
