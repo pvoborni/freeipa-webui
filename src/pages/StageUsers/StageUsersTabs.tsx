@@ -33,8 +33,7 @@ const StageUsersTabs = () => {
   const [user, setUser] = useState<User>(userData);
 
   // Make API calls needed for user Settings' data
-  const { metadata, metadataLoading, batchResponse, isBatchLoading } =
-    useUserSettingsData(userData.uid);
+  const userSettingsData = useUserSettingsData(userData.uid);
 
   // Tab
   const [activeTabKey, setActiveTabKey] = useState(0);
@@ -55,7 +54,7 @@ const StageUsersTabs = () => {
     },
   ];
 
-  if (metadataLoading || isBatchLoading) {
+  if (userSettingsData.isLoading) {
     return <DataSpinner />;
   }
 
@@ -89,11 +88,11 @@ const StageUsersTabs = () => {
             <PageSection className="pf-u-pb-0"></PageSection>
             <UserSettings
               user={user}
-              metadata={metadata}
-              userData={batchResponse[0].result}
-              pwPolicyData={batchResponse[1].result}
-              krbPolicyData={batchResponse[2].result}
-              certData={batchResponse[3].result}
+              metadata={userSettingsData.metadata}
+              userData={userSettingsData.userData}
+              pwPolicyData={userSettingsData.pwPolicyData}
+              krbPolicyData={userSettingsData.krbtPolicyData}
+              certData={userSettingsData.certData}
               onUserChange={setUser}
               from="stage-users"
             />

@@ -5,7 +5,18 @@ import {
   useGetUsersFullDataQuery,
 } from "src/services/rpc";
 
-const useUserSettingsData = (userId: string) => {
+import { Metadata } from "src/utils/datatypes/globalDataTypes";
+
+type UserSettingsData = {
+  isLoading: boolean;
+  metadata: Metadata;
+  userData?: Record<string, unknown>;
+  pwPolicyData?: Record<string, unknown>;
+  krbtPolicyData?: Record<string, unknown>;
+  certData?: Record<string, unknown>;
+};
+
+const useUserSettingsData = (userId: string): UserSettingsData => {
   // [API call] Metadata
   const metadataQuery = useGetObjectMetadataQuery();
   const metadata = metadataQuery.data || {};
@@ -43,7 +54,19 @@ const useUserSettingsData = (userId: string) => {
   const batchResponse = batchQuery.data || {};
   const isBatchLoading = batchQuery.isLoading;
 
-  return { metadata, metadataLoading, batchResponse, isBatchLoading };
+  const userData = isBatchLoading ? null : batchResponse[0].result;
+  const pwPolicyData = isBatchLoading ? null : batchResponse[1].result;
+  const krbtPolicyData = isBatchLoading ? null : batchResponse[2].result;
+  const certData = isBatchLoading ? null : batchResponse[3].result;
+
+  return {
+    isLoading: metadataLoading || isBatchLoading,
+    metadata,
+    userData,
+    pwPolicyData,
+    krbtPolicyData,
+    certData,
+  };
 };
 
 export default useUserSettingsData;
