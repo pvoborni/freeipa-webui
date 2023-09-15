@@ -176,13 +176,17 @@ export const parseFullDateStringToUTCFormat = (dateString: string) => {
   return date;
 };
 
+export function pad2(value: number): string {
+  return value.toString().padStart(2, "0");
+}
+
 // Given a date, obtain the time in LDAP generalized time format
-const formatDate = (date, format, local) => {
+const formatDate = (date: Date, format: string | undefined, local: boolean) => {
   const fmt = format || templates.human;
   let str;
 
   if (local) {
-    const year = fmt.replace(/YYYY/i, date.getFullYear());
+    const year = fmt.replace(/YYYY/i, date.getFullYear().toString());
     const month = year.replace(
       /MM/i,
       (date.getMonth() + 1).toString().padStart(2, "0")
@@ -201,7 +205,7 @@ const formatDate = (date, format, local) => {
     );
     str = minute.replace(/ss/i, date.getSeconds().toString().padStart(2, "0"));
   } else {
-    const year = fmt.replace(/YYYY/i, date.getUTCFullYear());
+    const year = fmt.replace(/YYYY/i, date.getUTCFullYear().toString());
     const month = year.replace(
       /MM/i,
       (date.getUTCMonth() + 1).toString().padStart(2, "0")

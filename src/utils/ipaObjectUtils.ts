@@ -1,6 +1,9 @@
 import { Metadata, ParamMetadata } from "src/utils/datatypes/globalDataTypes";
 
-export type BasicType = string | number | boolean | null | undefined | [];
+export type IPADate = {
+  __datetime__: string;
+}
+export type BasicType = string | number | boolean | null | undefined | IPADate | BasicType[];
 
 export type IPAObject = Record<string, unknown>;
 
