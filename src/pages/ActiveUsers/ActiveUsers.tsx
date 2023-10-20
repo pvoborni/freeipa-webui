@@ -43,22 +43,19 @@ import ModalWithFormLayout from "src/components/layouts/ModalWithFormLayout";
 // Hooks
 import { useAlerts } from "src/hooks/useAlerts";
 // Utils
-import { apiErrorToJsXError, isUserSelectable } from "src/utils/utils";
+import { isUserSelectable } from "src/utils/utils";
 
 // RPC client
 import {
   Command,
-  FindRPCResponse,
-  BatchRPCResponse,
-  UIDType,
-  useBatchMutCommandMutation,
   useGettingUserQuery,
   useSimpleMutCommandMutation,
+  UsersPayload,
 } from "src/services/rpc";
 // Errors
 import { FetchBaseQueryError } from "@reduxjs/toolkit/dist/query";
 import { SerializedError } from "@reduxjs/toolkit";
-import ErrorModal from "src/components/modals/ErrorModal";
+import useApiError from "src/hooks/useApiError";
 
 const ActiveUsers = () => {
   // Dispatch (Redux)
@@ -69,101 +66,131 @@ const ActiveUsers = () => {
     (state) => state.global.environment.api_version
   ) as string;
 
-  // Active users list
-  const usersList: User[] = [];
   const [activeUsersList, setActiveUsersList] = useState<User[]>([]);
 
   // Define 'executeCommand' to execute simple commands (via Mutation)
   const [executeCommand] = useSimpleMutCommandMutation();
 
-  // Define 'executeBatchCommand' to execute a batch of operations (via Mutation)
-  const [executeBatchCommand] = useBatchMutCommandMutation();
-
   // Alerts to show in the UI
   const alerts = useAlerts();
 
-  // [API Call] Retrieve partial user info from multiple query
+  // Handle API calls errors
+  const apiErrors = useApiError();
+
+  // Main states - what user can define / what we could use in page URL
+  const [searchValue, setSearchValue] = React.useState("");
+  const [page, setPage] = useState<number>(1);
+  const [perPage, setPerPage] = useState<number>(15);
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+
+  // Users displayed on the first page
+  const [shownUsersList, setShownUsersList] = useState<User[]>([]);
+
+  // Derived states - what we get from API
+  const userDataResponse = useGettingUserQuery({
+    searchValue,
+    sizeLimit: 0,
+    apiVersion,
+  } as UsersPayload);
+
   const {
     data: batchResponse,
     isLoading: isBatchLoading,
     error: batchError,
-  } = useGettingUserQuery(apiVersion);
+  } = userDataResponse;
 
-  let storedData = false;
+  // Page indexes
+  const firstUserIdx = (page - 1) * perPage;
+  const lastUserIdx = page * perPage;
 
-  if (batchResponse !== undefined) {
-    const returnItems = batchResponse.result.count;
-    const usersData = batchResponse.result.results;
+  // Handle data when the API call is finished
+  useEffect(() => {
+    if (
+      userDataResponse.isSuccess &&
+      userDataResponse.data &&
+      batchResponse !== undefined
+    ) {
+      const usersListResult = batchResponse.result.results;
+      const usersListSize = batchResponse.result.count;
+      const usersList: User[] = [];
 
-    for (let i = 0; i < returnItems; i++) {
-      usersList.push(usersData[i].result);
+      for (let i = 0; i < usersListSize; i++) {
+        usersList.push(usersListResult[i].result);
+      }
+
+      // Update 'Active users' slice data
+      dispatch(updateUsersList(usersList));
+      // Update the list of users
+      setActiveUsersList(usersList);
+      // Update the shown users list
+      setShownUsersList(usersList.slice(firstUserIdx, lastUserIdx));
     }
+  }, [userDataResponse]);
 
-    // If user data retrieved, enable flag
-    if (usersList.length > 0) {
-      storedData = true;
-    }
+  const usersError = userDataResponse.error as unknown as
+    | FetchBaseQueryError
+    | SerializedError;
+  // process error
+  if (userDataResponse.isError) {
+    apiErrors.addErrorOnAddUser(usersError);
   }
 
-  // When users' data is fully retrieved, update:
-  //   - Active users list (#1)
-  //   - Active users slice data (#2)
-  //   - Users' list to show in the table (#3)
-  useEffect(() => {
-    if (storedData) {
-      // #1
-      setActiveUsersList(usersList);
+  // Refresh button handling
+  const refreshUsersData = () => {
+    // Hide table
+    setShowTableRows(false);
 
-      // #2
-      dispatch(updateUsersList(usersList));
+    // Reset selected users on refresh
+    setSelectedUserNames([]);
+    setSelectedUserIds([]);
+    setSelectedUsers([]);
 
-      // #3
-      setShownUsersList(usersList.slice(0, perPage));
-    }
-  }, [storedData]);
+    // Since there is no way to tell when the 'refetch' function
+    // finishes, set a timeout to simulate a delay and handle the
+    // showing elements / skeleton in the table (driven by 'showTableRows').
+    setTimeout(() => {
+      userDataResponse.refetch();
 
-  // Handle API calls errors
-  // See: https://redux-toolkit.js.org/rtk-query/usage-with-typescript#type-safe-error-handling
-  // - Errors array
-  const [apiErrorsJsx, setApiErrorsJsx] = useState<JSX.Element[]>([]);
+      const usersError = userDataResponse.error as unknown as
+        | FetchBaseQueryError
+        | SerializedError;
 
-  // - Global error message (JSX wrapper to display the array above)
-  const [errorGlobalMessage, setErrorGlobalMessage] = useState<JSX.Element>(
-    <></>
-  );
+      if (!userDataResponse.isLoading) {
+        if (userDataResponse.data !== undefined) {
+          const usersListResult = userDataResponse.data.result.results;
+          const usersListSize = userDataResponse.data.result.count;
+          const usersList: User[] = [];
 
-  // - Catch API errors and write them in the error's list ('apiErrors')
-  const setApiError = (
-    errorFromApiCall: FetchBaseQueryError | SerializedError | undefined,
-    contextMessage: string,
-    key: string
-  ) => {
-    if (errorFromApiCall !== undefined) {
-      const jsxError = apiErrorToJsXError(
-        errorFromApiCall,
-        contextMessage,
-        key
-      );
+          for (let i = 0; i < usersListSize; i++) {
+            usersList.push(usersListResult[i].result);
+          }
 
-      const errorJsx = [...apiErrorsJsx];
-      errorJsx.push(jsxError);
-      setApiErrorsJsx(errorJsx);
-    }
+          // Update states only if there are changes
+          if (JSON.stringify(usersList) !== JSON.stringify(activeUsersList)) {
+            // Update 'Active users' slice data
+            dispatch(updateUsersList(usersList));
+            // Update the list of users
+            setActiveUsersList(usersList);
+            // Update the shown users list
+            setShownUsersList(usersList.slice(firstUserIdx, lastUserIdx));
+          }
+
+          // Show table elements
+          setShowTableRows(true);
+        } else {
+          apiErrors.addErrorOnAddUser(usersError);
+        }
+      }
+    }, 900);
   };
 
-  // - Keep 'errorGlobalMessage' data updated with recent changes (in 'apiErrorsJsx')
+  // Handle error messages when retrieving list of users
   useEffect(() => {
-    setErrorGlobalMessage(
-      <div style={{ alignSelf: "center", marginTop: "16px" }}>
-        <TextLayout component="h3">An error has occurred</TextLayout>
-        {apiErrorsJsx}
-      </div>
+    apiErrors.addApiError(
+      batchError,
+      "Error when loading data",
+      "error-batch-users"
     );
-  }, [apiErrorsJsx]);
-
-  // - Gracefully handle 'batchError' messages
-  useEffect(() => {
-    setApiError(batchError, "Error when loading data", "error-batch-users");
   }, [batchError]);
 
   // Selected users state
@@ -212,8 +239,6 @@ const ActiveUsers = () => {
   };
 
   // - Selected user ids state
-  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
-
   const updateSelectedUserIds = (newSelectedUserIds: string[]) => {
     setSelectedUserIds(newSelectedUserIds);
   };
@@ -227,30 +252,20 @@ const ActiveUsers = () => {
   };
 
   // Pagination
-  const [page, setPage] = useState<number>(1);
-
   const updatePage = (newPage: number) => {
     setPage(newPage);
   };
-
-  const [perPage, setPerPage] = useState<number>(15);
 
   const updatePerPage = (newSetPerPage: number) => {
     setPerPage(newSetPerPage);
   };
 
   // Users displayed on the first page
-  const [shownUsersList, setShownUsersList] = useState(
-    activeUsersList.slice(0, perPage)
-  );
-
   const updateShownUsersList = (newShownUsersList: User[]) => {
     setShownUsersList(newShownUsersList);
   };
 
   // Filter (Input search)
-  const [searchValue, setSearchValue] = React.useState("");
-
   const updateSearchValue = (value: string) => {
     setSearchValue(value);
   };
@@ -266,6 +281,7 @@ const ActiveUsers = () => {
   }, [isBatchLoading]);
 
   // [API call] 'Rebuild auto membership'
+  // TODO: Move this into a separate component
   const onRebuildAutoMembership = () => {
     // The operation will be made depending on the selected users
     const paramArgs =
@@ -439,168 +455,8 @@ const ActiveUsers = () => {
         : otherSelectedUserNames;
     });
 
-  // Updates the 'activeUsersList'
-  const updateActiveUsersList = (newUsersList) => {
-    const usersList: User[] = [];
-    for (let i = 0; i < newUsersList.length; i++) {
-      if (newUsersList[i].result !== undefined) {
-        const user = newUsersList[i].result as User;
-        usersList.push(user);
-      }
-    }
-    setActiveUsersList(usersList);
-    return usersList;
-  };
-
-  // Handle API error data
-  const [isModalErrorOpen, setIsModalErrorOpen] = useState(false);
-  const [errorTitle, setErrorTitle] = useState("");
-  const [errorMessage, setErrorMessage] = useState("");
-
-  const closeAndCleanErrorParameters = () => {
-    setIsModalErrorOpen(false);
-    setErrorTitle("");
-    setErrorMessage("");
-  };
-
-  const onCloseErrorModal = () => {
-    closeAndCleanErrorParameters();
-  };
-
-  const errorModalActions = [
-    <Button key="cancel" variant="link" onClick={onCloseErrorModal}>
-      Cancel
-    </Button>,
-  ];
-
-  const handleAPIError = (error: FetchBaseQueryError | SerializedError) => {
-    if ("error" in error) {
-      setErrorTitle("IPA error");
-      if (error.data !== undefined) {
-        setErrorMessage(error.error);
-      }
-    }
-    setIsModalErrorOpen(true);
-  };
-
-  // Update user data in Redux
-  const updateDataToRedux = (newUsersList: User[]) => {
-    dispatch(updateUsersList(newUsersList));
-  };
-
-  // Refresh data
-  const refreshUsersData = (listToRefresh: User[]) => {
-    // Hide table
-    setShowTableRows(false);
-
-    // Reset selected users on refresh
-    setSelectedUserNames([]);
-    setSelectedUserIds([]);
-    setSelectedUsers([]);
-
-    // Getting uids
-    const userFindPayload: Command = {
-      method: "user_find",
-      params: [
-        [],
-        {
-          pkey_only: true,
-          sizelimit: 0,
-          version: apiVersion,
-        },
-      ],
-    };
-
-    // 1.- Retrieving user ids
-    executeCommand(userFindPayload).then((userFindRes) => {
-      if ("data" in userFindRes) {
-        const data = userFindRes.data as FindRPCResponse;
-        const uids = data.result.result;
-        const uidsSize = data.result.count;
-        const uidsError = userFindRes.data.error as
-          | FetchBaseQueryError
-          | SerializedError;
-
-        if (uids !== undefined) {
-          // Getting list of users
-          const userIds: string[] = [];
-          const returnedItems = uidsSize;
-          for (let i = 0; i < returnedItems; i++) {
-            const userId = uids[i] as UIDType;
-            const { uid } = userId;
-            userIds.push(uid[0] as string);
-          }
-
-          const payloadUserDataBatch: Command[] = [];
-          const infoType = { no_members: true };
-          if (userIds.length > 0) {
-            userIds.map((uid) => {
-              const payloadItem = {
-                method: "user_show",
-                params: [[uid], infoType],
-              };
-              payloadUserDataBatch.push(payloadItem);
-            });
-          }
-
-          // 2.- Retrieving users list (based on uids)
-          executeBatchCommand(payloadUserDataBatch).then((userListRes) => {
-            if ("data" in userListRes) {
-              const responseData = userListRes.data as BatchRPCResponse;
-              const usersList = responseData.result.results;
-              const usersListSize = responseData.result.count;
-              const usersListError = responseData.error as
-                | FetchBaseQueryError
-                | SerializedError;
-
-              if (usersList !== undefined) {
-                listToRefresh = [];
-                for (let i = 0; i < usersListSize; i++) {
-                  listToRefresh.push(usersList[i]);
-                }
-
-                // Update 'activeUsersList'
-                const newActiveUsersList = updateActiveUsersList(listToRefresh);
-                // Update 'shownUsersList'
-                setShownUsersList(newActiveUsersList.slice(0, perPage));
-
-                // Update changes to Redux
-                updateDataToRedux(newActiveUsersList);
-
-                // If user data retrieved, enable flag
-                if (listToRefresh.length > 0) {
-                  storedData = true;
-                }
-
-                // Show table elements
-                setShowTableRows(true);
-              } else if (usersListError !== undefined) {
-                // TODO: Handle error
-                handleAPIError(usersListError);
-              }
-            }
-          });
-        } else if (uidsError !== undefined) {
-          // TODO: Handle error
-          handleAPIError(uidsError);
-        }
-      } else if ("error" in userFindRes) {
-        const error = {
-          status: "CUSTOM_ERROR",
-          data: "",
-          error: "Unable to retrieve users' data",
-        } as FetchBaseQueryError;
-        handleAPIError(error as FetchBaseQueryError);
-      }
-    });
-  };
-
-  // Refresh 'Active users' list
-  const refreshActiveUsersList = () => {
-    refreshUsersData(activeUsersList);
-  };
-
   // Data wrappers
+  // TODO: Better separation of concerts
   // - 'PaginationPrep'
   const paginationData = {
     page,
@@ -716,7 +572,7 @@ const ActiveUsers = () => {
       key: 3,
       element: (
         <SecondaryButton
-          onClickHandler={() => refreshUsersData(activeUsersList)}
+          onClickHandler={refreshUsersData}
           isDisabled={!showTableRows}
         >
           Refresh
@@ -838,7 +694,7 @@ const ActiveUsers = () => {
             <OuterScrollContainer>
               <InnerScrollContainer>
                 {batchError !== undefined && batchError ? (
-                  <>{errorGlobalMessage}</>
+                  <apiErrors.ShowApiErrors />
                 ) : (
                   <UsersTable
                     elementsList={activeUsersList}
@@ -870,7 +726,7 @@ const ActiveUsers = () => {
           handleModalToggle={onAddModalToggle}
           onOpenAddModal={onAddClickHandler}
           onCloseAddModal={onCloseAddModal}
-          onRefresh={() => refreshUsersData(activeUsersList)}
+          onRefresh={refreshUsersData}
         />
         <DeleteUsers
           show={showDeleteModal}
@@ -878,7 +734,7 @@ const ActiveUsers = () => {
           handleModalToggle={onDeleteModalToggle}
           selectedUsersData={selectedUsersData}
           buttonsData={deleteUsersButtonsData}
-          onRefresh={refreshActiveUsersList}
+          onRefresh={refreshUsersData}
           onCloseDeleteModal={onCloseDeleteModal}
           onOpenDeleteModal={onOpenDeleteModal}
         />
@@ -889,17 +745,9 @@ const ActiveUsers = () => {
           optionSelected={enableDisableOptionSelected}
           selectedUsersData={selectedUsersData}
           buttonsData={disableEnableButtonsData}
-          onRefresh={refreshActiveUsersList}
+          onRefresh={refreshUsersData}
         />
-        {isModalErrorOpen && (
-          <ErrorModal
-            title={errorTitle}
-            isOpen={isModalErrorOpen}
-            onClose={onCloseErrorModal}
-            actions={errorModalActions}
-            errorMessage={errorMessage}
-          />
-        )}
+        <apiErrors.ErrorOnAddUserModal />
         {isMembershipModalOpen && (
           <ModalWithFormLayout
             variantType="medium"
