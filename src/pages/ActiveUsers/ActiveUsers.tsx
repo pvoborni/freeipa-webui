@@ -108,6 +108,14 @@ const ActiveUsers = () => {
 
   // Handle data when the API call is finished
   useEffect(() => {
+    if (userDataResponse.isFetching) {
+      setShowTableRows(false);
+      // Reset selected users on refresh
+      setSelectedUserNames([]);
+      setSelectedUserIds([]);
+      setSelectedUsers([]);
+      return
+    }
     if (
       userDataResponse.isSuccess &&
       userDataResponse.data &&
@@ -127,6 +135,7 @@ const ActiveUsers = () => {
       setActiveUsersList(usersList);
       // Update the shown users list
       setShownUsersList(usersList.slice(firstUserIdx, lastUserIdx));
+      setShowTableRows(true);
     } else {
       globalErrors.addError(
         batchError,
@@ -145,48 +154,7 @@ const ActiveUsers = () => {
     setSelectedUserNames([]);
     setSelectedUserIds([]);
     setSelectedUsers([]);
-
-    // Since there is no way to tell when the 'refetch' function
-    // finishes, set a timeout to simulate a delay and handle the
-    // showing elements / skeleton in the table (driven by 'showTableRows').
-    setTimeout(() => {
-      userDataResponse.refetch();
-
-      const usersError = userDataResponse.error as unknown as
-        | FetchBaseQueryError
-        | SerializedError;
-
-      if (!userDataResponse.isLoading) {
-        if (userDataResponse.data !== undefined) {
-          const usersListResult = userDataResponse.data.result.results;
-          const usersListSize = userDataResponse.data.result.count;
-          const usersList: User[] = [];
-
-          for (let i = 0; i < usersListSize; i++) {
-            usersList.push(usersListResult[i].result);
-          }
-
-          // Update states only if there are changes
-          if (JSON.stringify(usersList) !== JSON.stringify(activeUsersList)) {
-            // Update 'Active users' slice data
-            dispatch(updateUsersList(usersList));
-            // Update the list of users
-            setActiveUsersList(usersList);
-            // Update the shown users list
-            setShownUsersList(usersList.slice(firstUserIdx, lastUserIdx));
-          }
-
-          // Show table elements
-          setShowTableRows(true);
-        } else {
-          globalErrors.addError(
-            usersError,
-            "Error when loading data",
-            "error-batch-users"
-          );
-        }
-      }
-    }, 900);
+    userDataResponse.refetch();
   };
 
   // Selected users state

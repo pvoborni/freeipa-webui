@@ -23,15 +23,18 @@ const useApiError = (errors: ApiError[]) => {
     title?: string
   ) => {
     if (errorFromApiCall !== undefined) {
-      setErrorsList((prevErrors) => [
-        ...prevErrors,
-        {
-          error: errorFromApiCall,
-          key: key,
-          context: contextMessage,
-          title: title || "",
-        },
-      ]);
+      setErrorsList((prevErrors) => {
+        const errors = prevErrors.filter((error) => error.key !== key)
+        return [
+          ...errors,
+          {
+            error: errorFromApiCall,
+            key: key,
+            context: contextMessage,
+            title: title || "",
+          },
+        ]
+      });
     }
   };
 
