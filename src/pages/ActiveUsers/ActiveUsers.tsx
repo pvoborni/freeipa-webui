@@ -77,7 +77,8 @@ const ActiveUsers = () => {
   const alerts = useAlerts();
 
   // Handle API calls errors
-  const apiErrors = useApiError();
+  const globalErrors = useApiError([]);
+  const modalErrors = useApiError([]);
 
   // Main states - what user can define / what we could use in page URL
   const [searchValue, setSearchValue] = React.useState("");
@@ -127,7 +128,8 @@ const ActiveUsers = () => {
       // Update the shown users list
       setShownUsersList(usersList.slice(firstUserIdx, lastUserIdx));
     } else {
-      apiErrors.addError(
+      console.log("Adding global error");
+      globalErrors.addError(
         batchError,
         "Error when loading data",
         "error-batch-users"
@@ -178,7 +180,8 @@ const ActiveUsers = () => {
           // Show table elements
           setShowTableRows(true);
         } else {
-          apiErrors.addError(
+          console.log("Adding modal error");
+          modalErrors.addError(
             usersError,
             "Error when loading data",
             "error-batch-users"
@@ -690,7 +693,7 @@ const ActiveUsers = () => {
               <InnerScrollContainer>
                 {batchError !== undefined && batchError ? (
                   // <apiErrors.ApiErrors />
-                  <GlobalErrors errors={apiErrors.getAll()} />
+                  <GlobalErrors errors={globalErrors.getAll()} />
                 ) : (
                   <UsersTable
                     elementsList={activeUsersList}
@@ -744,7 +747,7 @@ const ActiveUsers = () => {
           onRefresh={refreshUsersData}
         />
         {/* <apiErrors.ModalErrors /> */}
-        <ModalErrors errors={apiErrors.getAll()} />
+        <ModalErrors errors={modalErrors.getAll()} />
         {isMembershipModalOpen && (
           <ModalWithFormLayout
             variantType="medium"

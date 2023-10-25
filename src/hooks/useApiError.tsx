@@ -12,10 +12,10 @@ export interface ApiError {
   title?: string; // not sure if this is needed
 }
 
-const useApiError = () => {
+function useApiError(errors: ApiError[]) {
   // const [generalErrors, setGeneralErrors] = React.useState<ApiError[]>([]);
   // const [modalErrors, setModalErrors] = React.useState<ApiError[]>([]);
-  const [errorsList, setErrorsList] = React.useState<ApiError[]>([]);
+  const [errorsList, setErrorsList] = React.useState<ApiError[]>(errors);
 
   // - Catch API errors and write them in the error's list ('apiErrors')
   const addError = (
@@ -64,6 +64,6 @@ const useApiError = () => {
     getAll,
     get,
   };
-};
+}
 
 export default useApiError;

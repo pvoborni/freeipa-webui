@@ -11,6 +11,7 @@ interface GlobalErrorProps {
 }
 
 const GlobalErrors = ({ errors }: GlobalErrorProps) => {
+  console.log("Global errors: ", errors);
   return (
     <div style={{ alignSelf: "center", marginTop: "16px" }}>
       <TextLayout component="h3">An error has occurred</TextLayout>

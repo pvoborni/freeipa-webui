@@ -15,6 +15,7 @@ const ModalErrors = ({ errors }: ModalErrorProps) => {
   const [errorMessage, setErrorMessage] = React.useState("");
 
   React.useEffect(() => {
+    console.log("Modal errors: ", errors);
     if (errors.length > 0) {
       setIsModalErrorOpen(true);
       setErrorTitle(errors[0].title || "IPA error");
