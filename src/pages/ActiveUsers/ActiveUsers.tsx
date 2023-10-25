@@ -56,6 +56,8 @@ import {
 import { FetchBaseQueryError } from "@reduxjs/toolkit/dist/query";
 import { SerializedError } from "@reduxjs/toolkit";
 import useApiError from "src/hooks/useApiError";
+import GlobalErrors from "src/components/errors/GlobalErrors";
+import ModalErrors from "src/components/errors/ModalErrors";
 
 const ActiveUsers = () => {
   // Dispatch (Redux)
@@ -124,16 +126,14 @@ const ActiveUsers = () => {
       setActiveUsersList(usersList);
       // Update the shown users list
       setShownUsersList(usersList.slice(firstUserIdx, lastUserIdx));
+    } else {
+      apiErrors.addError(
+        batchError,
+        "Error when loading data",
+        "error-batch-users"
+      );
     }
   }, [userDataResponse]);
-
-  const usersError = userDataResponse.error as unknown as
-    | FetchBaseQueryError
-    | SerializedError;
-  // process error
-  if (userDataResponse.isError) {
-    apiErrors.addErrorOnAddUser(usersError);
-  }
 
   // Refresh button handling
   const refreshUsersData = () => {
@@ -178,20 +178,15 @@ const ActiveUsers = () => {
           // Show table elements
           setShowTableRows(true);
         } else {
-          apiErrors.addErrorOnAddUser(usersError);
+          apiErrors.addError(
+            usersError,
+            "Error when loading data",
+            "error-batch-users"
+          );
         }
       }
     }, 900);
   };
-
-  // Handle error messages when retrieving list of users
-  useEffect(() => {
-    apiErrors.addApiError(
-      batchError,
-      "Error when loading data",
-      "error-batch-users"
-    );
-  }, [batchError]);
 
   // Selected users state
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
@@ -694,7 +689,8 @@ const ActiveUsers = () => {
             <OuterScrollContainer>
               <InnerScrollContainer>
                 {batchError !== undefined && batchError ? (
-                  <apiErrors.ShowApiErrors />
+                  // <apiErrors.ApiErrors />
+                  <GlobalErrors errors={apiErrors.getAll()} />
                 ) : (
                   <UsersTable
                     elementsList={activeUsersList}
@@ -747,7 +743,8 @@ const ActiveUsers = () => {
           buttonsData={disableEnableButtonsData}
           onRefresh={refreshUsersData}
         />
-        <apiErrors.ErrorOnAddUserModal />
+        {/* <apiErrors.ModalErrors /> */}
+        <ModalErrors errors={apiErrors.getAll()} />
         {isMembershipModalOpen && (
           <ModalWithFormLayout
             variantType="medium"

@@ -1,114 +1,68 @@
 import React from "react";
-// Components
-import TextLayout from "src/components/layouts/TextLayout";
-import { Button } from "@patternfly/react-core";
-// Utils
-import { apiErrorToJsXError } from "src/utils/utils";
 // Redux toolkit
 import { FetchBaseQueryError } from "@reduxjs/toolkit/dist/query";
 import { SerializedError } from "@reduxjs/toolkit";
-// Modals
-import ErrorModal from "src/components/modals/ErrorModal";
+
+type RawApiError = FetchBaseQueryError | SerializedError;
+
+export interface ApiError {
+  error: RawApiError;
+  context: string;
+  key: string;
+  title?: string; // not sure if this is needed
+}
 
 const useApiError = () => {
-  // #1 - Handle general API calls errors
-  // See: https://redux-toolkit.js.org/rtk-query/usage-with-typescript#type-safe-error-handling
-  // - Errors array
-  const [apiErrorsJsx, setApiErrorsJsx] = React.useState<JSX.Element[]>([]);
-
-  // - Global error message (JSX wrapper to display the array above)
-  const [errorGlobalMessage, setErrorGlobalMessage] =
-    React.useState<JSX.Element>(<></>);
+  // const [generalErrors, setGeneralErrors] = React.useState<ApiError[]>([]);
+  // const [modalErrors, setModalErrors] = React.useState<ApiError[]>([]);
+  const [errorsList, setErrorsList] = React.useState<ApiError[]>([]);
 
   // - Catch API errors and write them in the error's list ('apiErrors')
-  const addApiError = (
+  const addError = (
     errorFromApiCall: FetchBaseQueryError | SerializedError | undefined,
     contextMessage: string,
-    key: string
+    key: string,
+    title?: string
   ) => {
     if (errorFromApiCall !== undefined) {
-      const jsxError = apiErrorToJsXError(
-        errorFromApiCall,
-        contextMessage,
-        key
-      );
-
-      const errorJsx = [...apiErrorsJsx];
-      errorJsx.push(jsxError);
-      setApiErrorsJsx(errorJsx);
+      setErrorsList((prevErrors) => [
+        ...prevErrors,
+        {
+          error: errorFromApiCall,
+          key: key,
+          context: contextMessage,
+          title: title || "",
+        },
+      ]);
     }
   };
 
-  // - Remove API errors
-  const removeApiErrors = () => {
-    setApiErrorsJsx([]);
+  // Remove error by key
+  const removeError = (key: string) => {
+    setErrorsList(errorsList.filter((error) => error.key !== key));
   };
 
-  // - Show API errors
-  const ShowApiErrors = () => <>{errorGlobalMessage}</>;
-
-  // - Keep 'errorGlobalMessage' data updated with recent changes (in 'apiErrorsJsx')
-  React.useEffect(() => {
-    setErrorGlobalMessage(
-      <div style={{ alignSelf: "center", marginTop: "16px" }}>
-        <TextLayout component="h3">An error has occurred</TextLayout>
-        {apiErrorsJsx}
-      </div>
-    );
-  }, [apiErrorsJsx]);
-
-  // #2 - Handle API error data (when adding users)
-  // Open a modal to display the error message when adding a user fails.
-  const [isModalErrorOpen, setIsModalErrorOpen] = React.useState(false);
-  const [errorTitle, setErrorTitle] = React.useState("");
-  const [errorMessage, setErrorMessage] = React.useState("");
-
-  const closeAndCleanErrorParameters = () => {
-    setIsModalErrorOpen(false);
-    setErrorTitle("");
-    setErrorMessage("");
+  // - Remove all errors
+  const clear = () => {
+    setErrorsList([]);
   };
 
-  const onCloseErrorModal = () => {
-    closeAndCleanErrorParameters();
+  // Get all errors
+  const getAll = () => {
+    return errorsList;
   };
 
-  const errorModalActions = [
-    <Button key="cancel" variant="link" onClick={onCloseErrorModal}>
-      Cancel
-    </Button>,
-  ];
-
-  const addErrorOnAddUser = (error: FetchBaseQueryError | SerializedError) => {
-    if ("error" in error) {
-      setErrorTitle("IPA error");
-      if (error.data !== undefined) {
-        setErrorMessage(error.error);
-      }
-    }
-    setIsModalErrorOpen(true);
+  // Get error by key
+  const get = (key: string) => {
+    return errorsList.filter((error) => error.key === key)[0];
   };
-
-  const ErrorOnAddUserModal = () => (
-    <>
-      {isModalErrorOpen && (
-        <ErrorModal
-          title={errorTitle}
-          isOpen={isModalErrorOpen}
-          onClose={onCloseErrorModal}
-          actions={errorModalActions}
-          errorMessage={errorMessage}
-        />
-      )}
-    </>
-  );
 
   return {
-    ShowApiErrors,
-    addApiError,
-    removeApiErrors,
-    addErrorOnAddUser,
-    ErrorOnAddUserModal,
+    addError,
+    removeError,
+    clear,
+    getAll,
+    get,
   };
 };
 
