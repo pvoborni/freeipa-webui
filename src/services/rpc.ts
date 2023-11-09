@@ -14,13 +14,17 @@ import {
   IDPServer,
   RadiusServer,
   CertificateAuthority,
+  PwPolicy,
+  KrbPolicy,
 } from "src/utils/datatypes/globalDataTypes";
 import { apiToUser } from "src/utils/userUtils";
+import { apiToPwPolicy } from "src/utils/pwPolicyUtils";
+import { apiToKrbPolicy } from "src/utils/krbPolicyUtils";
 
 export type UserFullData = {
   user?: Partial<User>;
-  pwPolicy?: Record<string, unknown>;
-  krbtPolicy?: Record<string, unknown>;
+  pwPolicy?: Partial<PwPolicy>;
+  krbtPolicy?: Partial<KrbPolicy>;
   cert?: Record<string, unknown>;
 };
 
@@ -38,8 +42,8 @@ export interface Query {
 export interface ShowRPCResponse {
   error: string;
   id: string;
-  principal: string;
-  version: string;
+  principal?: string;
+  version?: string;
   result: Record<string, unknown>;
 }
 
@@ -48,12 +52,17 @@ export interface BatchResult {
   count: number;
   truncated: boolean;
   summary: string;
+  error: string | ErrorResult;
 }
 
 export interface BatchResponse {
   result: {
     results: BatchResult[];
   };
+  error: string | ErrorResult;
+  id: string;
+  principal: string;
+  version: string;
 }
 
 export interface ErrorResult {
@@ -330,12 +339,39 @@ export const api = createApi({
         );
       },
       transformResponse: (response: BatchResponse): UserFullData => {
-        const results = response.result.results;
+        const [
+          userResponse,
+          pwPolicyResponse,
+          krbtPolicyResponse,
+          certResponse,
+        ] = response.result.results;
+
+        // Initialize user data (to prevent 'undefined' values)
+        const userData = userResponse.result;
+        const pwPolicyData = pwPolicyResponse.result;
+        const krbtPolicyData = krbtPolicyResponse.result;
+        const certData = certResponse.result;
+
+        let userObject = {};
+        if (!userResponse.error) {
+          userObject = apiToUser(userData);
+        }
+
+        let pwPolicyObject = {};
+        if (!pwPolicyResponse.error) {
+          pwPolicyObject = apiToPwPolicy(pwPolicyData);
+        }
+
+        let krbtPolicyObject = {};
+        if (!krbtPolicyResponse.error) {
+          krbtPolicyObject = apiToKrbPolicy(krbtPolicyData);
+        }
+
         return {
-          user: apiToUser(results[0].result),
-          pwPolicy: results[1].result,
-          krbtPolicy: results[2].result,
-          cert: results[3].result,
+          user: userObject,
+          pwPolicy: pwPolicyObject,
+          krbtPolicy: krbtPolicyObject,
+          cert: certData,
         };
       },
       providesTags: ["FullUser"],

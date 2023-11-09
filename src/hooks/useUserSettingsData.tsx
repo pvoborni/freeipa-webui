@@ -12,7 +12,9 @@ import {
 // Data types
 import {
   IDPServer,
+  KrbPolicy,
   Metadata,
+  PwPolicy,
   RadiusServer,
   User,
 } from "src/utils/datatypes/globalDataTypes";
@@ -27,8 +29,10 @@ type UserSettingsData = {
   originalUser: Partial<User>;
   user: Partial<User>;
   setUser: (user: Partial<User>) => void;
-  pwPolicyData?: Record<string, unknown>;
-  krbtPolicyData?: Record<string, unknown>;
+  // pwPolicyData?: Record<string, unknown>;
+  pwPolicyData: PwPolicy;
+  // krbtPolicyData?: Record<string, unknown>;
+  krbtPolicyData: KrbPolicy;
   certData?: Record<string, unknown>;
   refetch: () => void;
   modifiedValues: () => Partial<User>;
@@ -109,8 +113,8 @@ const useSettingsData = (
 
   if (userFullData) {
     settings.originalUser = userFullData.user || {};
-    settings.pwPolicyData = userFullData.pwPolicy;
-    settings.krbtPolicyData = userFullData.krbtPolicy;
+    settings.pwPolicyData = userFullData.pwPolicy as PwPolicy;
+    settings.krbtPolicyData = userFullData.krbtPolicy as KrbPolicy;
     settings.certData = userFullData.cert;
   } else {
     settings.originalUser = {};

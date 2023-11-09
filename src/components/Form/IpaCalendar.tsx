@@ -5,7 +5,6 @@ import {
   InputGroup,
   TimePicker,
   isValidDate,
-  yyyyMMddFormat,
 } from "@patternfly/react-core";
 // Utils
 import {
@@ -42,26 +41,10 @@ export interface ParamPropertiesDateTime {
 
 const IpaCalendar = (props: IPAParamDefinition) => {
   const getValueDateTime = (ipaObject, propName) => {
-    let paramUtcDate: Date | null = null;
-
-    if (ipaObject !== undefined) {
-      const paramValue = ipaObject[propName] as DateParam[];
-
-      if (paramValue) {
-        // Detect if date parameter exists
-        let dateParam = "";
-        // Processing different formats
-        // i.e.: 'paramValue[0].__datetime__' or 'paramValue'
-        if (paramValue[0].__datetime__) {
-          dateParam = paramValue[0].__datetime__ as string;
-        } else {
-          dateParam = paramValue.toString();
-        }
-        // Parse to UTC format
-        paramUtcDate = parseFullDateStringToUTCFormat(dateParam);
-      }
+    if (!ipaObject || ipaObject[propName] === undefined) {
+      return null;
     }
-    return paramUtcDate;
+    return ipaObject[propName];
   };
 
   function getParamPropertiesDateTime(
@@ -110,14 +93,33 @@ const IpaCalendar = (props: IPAParamDefinition) => {
   }
 
   const { readOnly, value } = getParamPropertiesDateTime(props);
-  const [valueDate, setValueDate] = React.useState<Date | null>(value || null);
+  const [valueDate, setValueDate] = React.useState<Date | null>(value as Date);
+  const [date, setDate] = React.useState<string>("");
+  const [hour, setHour] = React.useState<string>("");
 
   // Keep the values updated, thus preventing empty values
   React.useEffect(() => {
-    if (props.ipaObject !== undefined) {
-      setValueDate(value || null);
+    if (props.ipaObject !== undefined && value !== null) {
+      if (!isValidDate(value)) {
+        const transformedDate = parseFullDateStringToUTCFormat(
+          value.toString()
+        );
+        setValueDate(transformedDate);
+      } else {
+        setValueDate(value);
+      }
     }
-  }, [props.ipaObject]);
+  }, [props.ipaObject, value]);
+
+  React.useEffect(() => {
+    if (valueDate !== null) {
+      setDate(yyyyMMddFormat(valueDate));
+      setHour(hhMMFormat(valueDate));
+    } else {
+      setDate("");
+      setHour("");
+    }
+  }, [valueDate]);
 
   // On change date handler
   const onDateChange = (
@@ -127,15 +129,6 @@ const IpaCalendar = (props: IPAParamDefinition) => {
   ) => {
     if (newFromDate !== undefined) {
       if (
-        valueDate &&
-        isValidDate(valueDate) &&
-        isValidDate(newFromDate) &&
-        inputDate === yyyyMMddFormat(newFromDate)
-      ) {
-        newFromDate.setHours(valueDate.getHours());
-        newFromDate.setMinutes(valueDate.getMinutes());
-      }
-      if (
         isValidDate(newFromDate) &&
         inputDate === yyyyMMddFormat(newFromDate)
       ) {
@@ -143,7 +136,7 @@ const IpaCalendar = (props: IPAParamDefinition) => {
         // Update 'ipaObject' with the new date
         // - Parse to generalized format (to return to the "user_mod" API call)
         if (props.ipaObject !== undefined && props.onChange !== undefined) {
-          const LDAPDate = toGeneralizedTime(newFromDate);
+          const LDAPDate: string = toGeneralizedTime(newFromDate);
           updateIpaObject(
             props.ipaObject,
             props.onChange,
@@ -157,41 +150,49 @@ const IpaCalendar = (props: IPAParamDefinition) => {
 
   // On change time handler
   const onTimeChange = (_event, time, hour, minute) => {
-    if (valueDate && isValidDate(valueDate)) {
-      const updatedFromDate = valueDate;
-      updatedFromDate.setHours(hour);
-      updatedFromDate.setMinutes(minute);
-
-      setValueDate(updatedFromDate);
-      // Update 'ipaObject' with the new date
-      // - Parse to generalized format (to return to the "user_mod" API call)
-      if (props.ipaObject !== undefined && props.onChange !== undefined) {
-        const LDAPDate = toGeneralizedTime(updatedFromDate);
-        updateIpaObject(props.ipaObject, props.onChange, LDAPDate, props.name);
-      }
-    }
+    // Assume inital data is null
     // If the date is empty, create a new one with the current time
-    if (valueDate === null) {
-      const updatedFromDate = new Date();
-      updatedFromDate.setHours(hour);
-      updatedFromDate.setMinutes(minute);
+    let updatedFromDate: Date = new Date();
+    if (valueDate && isValidDate(valueDate)) {
+      updatedFromDate = valueDate;
+    }
+    updatedFromDate.setHours(hour);
+    updatedFromDate.setMinutes(minute);
 
-      setValueDate(updatedFromDate);
-      // Update 'ipaObject' with the new date
-      // - Parse to generalized format (to return to the "user_mod" API call)
-      if (props.ipaObject !== undefined && props.onChange !== undefined) {
-        const LDAPDate = toGeneralizedTime(updatedFromDate);
-        updateIpaObject(props.ipaObject, props.onChange, LDAPDate, props.name);
-      }
+    setValueDate(updatedFromDate);
+    // Update 'ipaObject' with the new date
+    // - Parse to generalized format (to return to the "user_mod" API call)
+    if (props.ipaObject !== undefined && props.onChange !== undefined) {
+      const LDAPDate = toGeneralizedTime(updatedFromDate);
+      updateIpaObject(props.ipaObject, props.onChange, LDAPDate, props.name);
     }
   };
 
-  // Parse the current date into 'HH:MM' format
-  const hhMMFormat = (date: Date) => {
-    const hours = date.getHours().toString().padStart(2, "0");
-    const minutes = date.getMinutes().toString().padStart(2, "0");
+  // Parse the current date into 'YYYY-MM-DD' format
+  const yyyyMMddFormat = (date: Date): string => {
+    if (date === undefined || date === null) return "";
 
-    return hours + ":" + minutes;
+    // This convertion is needed to prevent any Date data type issues
+    const dt = new Date(date);
+    const year = dt.getFullYear();
+    const month = dt.getMonth() + 1;
+    const day = dt.getDate().toString().padStart(2, "0");
+
+    const res = year.toString() + "-" + month.toString() + "-" + day;
+    return res;
+  };
+
+  // Parse the current date into 'HH:MM' format
+  const hhMMFormat = (date: Date): string => {
+    if (date === undefined || date === null) return "";
+
+    // This convertion is needed to prevent any Date data type issues
+    const dt = new Date(date);
+    const hours = dt.getHours().toString().padStart(2, "0");
+    const minutes = dt.getMinutes().toString().padStart(2, "0");
+
+    const res = hours + ":" + minutes;
+    return res;
   };
 
   return (
