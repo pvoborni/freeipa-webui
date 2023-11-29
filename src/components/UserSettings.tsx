@@ -51,6 +51,7 @@ import useAlerts from "src/hooks/useAlerts";
 import DisableEnableUsers from "./modals/DisableEnableUsers";
 import DeleteUsers from "./modals/DeleteUsers";
 import RebuildAutoMembership from "./modals/RebuildAutoMembership";
+import AddOtpToken from "./modals/AddOtpToken";
 
 export interface PropsToUserSettings {
   originalUser: Partial<User>;
@@ -133,6 +134,12 @@ const UserSettings = (props: PropsToUserSettings) => {
   };
   const userToRebuild = props.user.uid ? [props.user.uid] : [];
 
+  // 'Add OTP token' option
+  const [isAddOtpTokenModalOpen, setIsAddOtpTokenModalOpen] = useState(false);
+  const onCloseAddOtpTokenModal = () => {
+    setIsAddOtpTokenModalOpen(false);
+  };
+
   // Kebab
   const [isKebabOpen, setIsKebabOpen] = useState(false);
 
@@ -158,7 +165,12 @@ const UserSettings = (props: PropsToUserSettings) => {
     <DropdownItem key="unlock" isDisabled>
       Unlock
     </DropdownItem>,
-    <DropdownItem key="add otp token">Add OTP token</DropdownItem>,
+    <DropdownItem
+      key="add otp token"
+      onClick={() => setIsAddOtpTokenModalOpen(true)}
+    >
+      Add OTP token
+    </DropdownItem>,
     <DropdownItem
       key="rebuild auto membership"
       onClick={() => setIsRebuildAutoMembershipModalOpen(true)}
@@ -452,6 +464,12 @@ const UserSettings = (props: PropsToUserSettings) => {
         onClose={onCloseRebuildAutoMembershipModal}
         entriesToRebuild={userToRebuild}
         entity="users"
+      />
+      <AddOtpToken
+        uid={props.user.uid}
+        isOpen={isAddOtpTokenModalOpen}
+        setIsOpen={(value: boolean) => setIsAddOtpTokenModalOpen(value)}
+        onClose={onCloseAddOtpTokenModal}
       />
     </>
   );

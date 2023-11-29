@@ -700,6 +700,16 @@ export const api = createApi({
         });
       },
     }),
+    addOtpToken: build.mutation<FindRPCResponse, any[]>({
+      query: (payload) => {
+        const params = [payload[0], payload[1]];
+
+        return getCommand({
+          method: "otptoken_add",
+          params: params,
+        });
+      },
+    }),
   }),
 });
 
@@ -767,4 +777,5 @@ export const {
   useAutoMemberRebuildUsersMutation,
   useEnableUserMutation,
   useDisableUserMutation,
+  useAddOtpTokenMutation,
 } = api;

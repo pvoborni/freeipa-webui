@@ -312,3 +312,15 @@ export interface fqdnType {
   dn: string;
   fqdn: string[];
 }
+export interface OTPToken {
+  ipatokenotpalgorithm: string;
+  ipatokenuniqueid: string;
+  ipatokenotpkey: string;
+  ipatokenowner: string;
+  ipatokentotptimestep: string;
+  ipatokentotpclockoffset: string;
+  ipatokenotpdigits: string;
+  uri: string;
+  type: string;
+  dn: string;
+}
