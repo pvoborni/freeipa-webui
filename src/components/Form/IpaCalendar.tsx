@@ -14,9 +14,8 @@ import {
 import {
   BasicType,
   IPAParamDefinition,
-  getParamMetadata,
-  isRequired,
-  isWritable,
+  ParamProperties,
+  getParamProperties,
   updateIpaObject,
 } from "src/utils/ipaObjectUtils";
 import { ParamMetadata } from "src/utils/datatypes/globalDataTypes";
@@ -39,87 +38,37 @@ export interface ParamPropertiesDateTime {
   paramMetadata: ParamMetadata;
 }
 
-const IpaCalendar = (props: IPAParamDefinition) => {
-  const getValueDateTime = (ipaObject, propName) => {
-    if (!ipaObject || ipaObject[propName] === undefined) {
-      return null;
-    }
-    return ipaObject[propName];
-  };
+function getParamPropertiesDateTime(
+  parDef: IPAParamDefinition
+): ParamPropertiesDateTime {
 
-  function getParamPropertiesDateTime(
-    parDef: IPAParamDefinition
-  ): ParamPropertiesDateTime {
-    const propName = parDef.propertyName || parDef.name;
-    const paramMetadata = getParamMetadata(
-      parDef.metadata,
-      parDef.objectName,
-      propName
-    );
-    if (!paramMetadata) {
-      return {
-        writable: false,
-        required: false,
-        readOnly: true,
-        value: null,
-        // eslint-disable-next-line @typescript-eslint/no-empty-function
-        onChange: () => {},
-        paramMetadata: {} as ParamMetadata,
-      };
-    }
-    const writable = isWritable(
-      paramMetadata,
-      parDef.ipaObject,
-      parDef.alwaysWritable
-    );
-    const required = isRequired(parDef, paramMetadata, writable);
-    const readOnly =
-      parDef.readOnly === undefined ? !writable : parDef.readOnly;
-    const value = getValueDateTime(parDef.ipaObject, propName);
+  const paramProms: ParamProperties = getParamProperties(parDef);
 
-    const onChange = (value: BasicType) => {
-      if (parDef.onChange) {
-        parDef.onChange({ ...parDef.ipaObject, [propName]: value });
-      }
-    };
-    return {
-      writable,
-      required,
-      readOnly,
-      value,
-      onChange,
-      paramMetadata,
-    };
+  let valueDate: Date | null;
+  if (paramProms.value instanceof Date) {
+    valueDate = paramProms.value as Date;
+  } else if (typeof paramProms.value === 'string') {
+    valueDate = parseFullDateStringToUTCFormat(paramProms.value as string);
+  } else {
+    valueDate = null;
   }
 
+  return {
+    writable: paramProms.writable,
+    required: paramProms.required,
+    readOnly: paramProms.readOnly,
+    value: valueDate,
+    onChange: paramProms.onChange,
+    paramMetadata: paramProms.paramMetadata,
+  };
+}
+
+function cloneDate(date: Date): Date {
+  return parseFullDateStringToUTCFormat(toGeneralizedTime(date)) as Date;
+}
+
+const IpaCalendar = (props: IPAParamDefinition) => {
   const { readOnly, value } = getParamPropertiesDateTime(props);
-  const [valueDate, setValueDate] = React.useState<Date | null>(value as Date);
-  const [date, setDate] = React.useState<string>("");
-  const [hour, setHour] = React.useState<string>("");
-
-  // Keep the values updated, thus preventing empty values
-  React.useEffect(() => {
-    if (props.ipaObject !== undefined && value !== null) {
-      if (!isValidDate(value)) {
-        const transformedDate = parseFullDateStringToUTCFormat(
-          value.toString()
-        );
-        setValueDate(transformedDate);
-      } else {
-        setValueDate(value);
-      }
-    }
-  }, [props.ipaObject, value]);
-
-  React.useEffect(() => {
-    if (valueDate !== null) {
-      setDate(yyyyMMddFormat(valueDate));
-      setHour(hhMMFormat(valueDate));
-    } else {
-      setDate("");
-      setHour("");
-    }
-  }, [valueDate]);
 
   // On change date handler
   const onDateChange = (
@@ -132,7 +81,10 @@ const IpaCalendar = (props: IPAParamDefinition) => {
         isValidDate(newFromDate) &&
         inputDate === yyyyMMddFormat(newFromDate)
       ) {
-        setValueDate(newFromDate);
+        if (value) {
+          newFromDate.setHours(value.getHours());
+          newFromDate.setMinutes(value.getMinutes());
+        }
         // Update 'ipaObject' with the new date
         // - Parse to generalized format (to return to the "user_mod" API call)
         if (props.ipaObject !== undefined && props.onChange !== undefined) {
@@ -153,13 +105,12 @@ const IpaCalendar = (props: IPAParamDefinition) => {
     // Assume inital data is null
     // If the date is empty, create a new one with the current time
     let updatedFromDate: Date = new Date();
-    if (valueDate && isValidDate(valueDate)) {
-      updatedFromDate = valueDate;
+    if (value && isValidDate(value)) {
+      updatedFromDate = cloneDate(value);
     }
     updatedFromDate.setHours(hour);
     updatedFromDate.setMinutes(minute);
 
-    setValueDate(updatedFromDate);
     // Update 'ipaObject' with the new date
     // - Parse to generalized format (to return to the "user_mod" API call)
     if (props.ipaObject !== undefined && props.onChange !== undefined) {
@@ -169,7 +120,7 @@ const IpaCalendar = (props: IPAParamDefinition) => {
   };
 
   // Parse the current date into 'YYYY-MM-DD' format
-  const yyyyMMddFormat = (date: Date): string => {
+  const yyyyMMddFormat = (date: Date|null|undefined): string => {
     if (date === undefined || date === null) return "";
 
     // This convertion is needed to prevent any Date data type issues
@@ -183,7 +134,7 @@ const IpaCalendar = (props: IPAParamDefinition) => {
   };
 
   // Parse the current date into 'HH:MM' format
-  const hhMMFormat = (date: Date): string => {
+  const hhMMFormat = (date: Date|null|undefined): string => {
     if (date === undefined || date === null) return "";
 
     // This convertion is needed to prevent any Date data type issues
@@ -199,7 +150,7 @@ const IpaCalendar = (props: IPAParamDefinition) => {
     <InputGroup>
       <DatePicker
         name={"add-date-" + props.name}
-        value={valueDate !== null ? yyyyMMddFormat(valueDate) : ""}
+        value={yyyyMMddFormat(value)}
         onChange={onDateChange}
         aria-label="Kerberos principal expiration date"
         placeholder="YYYY-MM-DD"
@@ -207,7 +158,7 @@ const IpaCalendar = (props: IPAParamDefinition) => {
       />
       <TimePicker
         name={"add-time-" + props.name}
-        time={valueDate !== null ? hhMMFormat(valueDate) : ""}
+        time={hhMMFormat(value)}
         aria-label="Kerberos principal expiration time"
         onChange={onTimeChange}
         placeholder="HH:MM"
