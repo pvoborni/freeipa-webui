@@ -2,55 +2,44 @@ import React from "react";
 // PatternFly
 import { HelperText, HelperTextItem } from "@patternfly/react-core";
 // Icons
-import InfoIcon from "@patternfly/react-icons/dist/esm/icons/info-icon";
-import QuestionIcon from "@patternfly/react-icons/dist/esm/icons/question-icon";
-import ExclamationIcon from "@patternfly/react-icons/dist/esm/icons/exclamation-icon";
-import CheckIcon from "@patternfly/react-icons/dist/esm/icons/check-icon";
-import TimesIcon from "@patternfly/react-icons/dist/esm/icons/times-icon";
+import {
+  InfoIcon,
+  QuestionIcon,
+  ExclamationIcon,
+  CheckIcon,
+  TimesIcon
+} from "@patternfly/react-icons";
 
+type IconType = "info" | "question" | "warning" | "success" | "error";
 interface PropsToHelperTextWithIcon {
   message: string | React.ReactNode;
-  useDefaultIcons?: boolean | true;
-  type: "info" | "question" | "warning" | "success" | "error";
+  type?: IconType;
 }
 
-/*
- * Helper text component documentation:
- * http://v4-archive.patternfly.org/v4/components/helper-text
- */
+function getIcon(type?: IconType) {
+  switch (type) {
+    case "info":
+      return <InfoIcon />;
+    case "question":
+      return <QuestionIcon />;
+    case "warning":
+      return <ExclamationIcon />;
+    case "success":
+      return <CheckIcon />;
+    case "error":
+      return <TimesIcon />;
+    default:
+      return <InfoIcon />;
+  }
+}
 
 const HelperTextWithIcon = (props: PropsToHelperTextWithIcon) => {
-  const [icon, setIcon] = React.useState(<InfoIcon />);
-
-  React.useEffect(() => {
-    switch (props.type) {
-      case "info":
-        setIcon(<InfoIcon />);
-        break;
-      case "question":
-        setIcon(<QuestionIcon />);
-        break;
-      case "warning":
-        setIcon(<ExclamationIcon />);
-        break;
-      case "success":
-        setIcon(<CheckIcon />);
-        break;
-      case "error":
-        setIcon(<TimesIcon />);
-        break;
-      default:
-        setIcon(<InfoIcon />);
-        break;
-    }
-  }, [props.type]);
-
   return (
     <HelperText>
-      {props.useDefaultIcons ? (
+      {!props.type ? (
         <HelperTextItem>{props.message}</HelperTextItem>
       ) : (
-        <HelperTextItem icon={icon}>{props.message}</HelperTextItem>
+        <HelperTextItem icon={getIcon(props.type)}>{props.message}</HelperTextItem>
       )}
     </HelperText>
   );

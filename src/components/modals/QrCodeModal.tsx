@@ -34,21 +34,12 @@ const QrCodeModal = (props: PropsToQrCodeModal) => {
     </Text>
   );
 
-  // Generate QR code
-  const [url, setUrl] = React.useState("");
-
-  React.useEffect(() => {
-    if (props.QrUri) {
-      setUrl(props.QrUri);
-    }
-  }, [props.QrUri]);
-
   const qrCode = (
     <>
-      <a href={url} target="_blank" rel="noreferrer">
+      <a href={props.QrUri} target="_blank" rel="noreferrer">
         <QRCodeCanvas
           id="qrCode"
-          value={url}
+          value={props.QrUri}
           size={400}
           bgColor={"#ffffff"}
           level={"H"}
@@ -65,7 +56,6 @@ const QrCodeModal = (props: PropsToQrCodeModal) => {
         <HelperTextWithIcon
           message={messageQrConfiguration}
           type="info"
-          useDefaultIcons={false}
         />
       ),
     },
@@ -75,7 +65,6 @@ const QrCodeModal = (props: PropsToQrCodeModal) => {
         <HelperTextWithIcon
           message={messageQrViaFreeOtp}
           type="info"
-          useDefaultIcons={false}
         />
       ),
     },

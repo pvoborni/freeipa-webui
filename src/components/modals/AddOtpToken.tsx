@@ -64,8 +64,9 @@ const AddOtpToken = (props: PropsToAddOtpToken) => {
 
   // Track initial values to detect changes
   const initialValues = {
-    isTimeBasedChecked: true,
-    isCounterBasedChecked: false,
+    tokenType: "totp",
+    tokenAlgorithm: "sha1",
+    tokenDigits: "6",
     uniqueId: "",
     description: "",
     selectedOwner: props.uid,
@@ -75,101 +76,47 @@ const AddOtpToken = (props: PropsToAddOtpToken) => {
     vendor: "",
     serial: "",
     key: "",
-    isSha1Checked: true,
-    isSha256Checked: false,
-    isSha384Checked: false,
-    isSha512Checked: false,
-    digit6: true,
-    digit8: false,
     clockInterval: "",
   };
 
-  // Radio buttons
-  const [isTimeBasedChecked, setIsTimeBasedChecked] = React.useState(
-    initialValues.isTimeBasedChecked
-  );
-  const [isCounterBasedChecked, setIsCounterBasedChecked] = React.useState(
-    initialValues.isCounterBasedChecked
-  );
-  const [isSha1Checked, setIsSha1Checked] = React.useState(
-    initialValues.isSha1Checked
-  );
-  const [isSha256Checked, setIsSha256Checked] = React.useState(
-    initialValues.isSha256Checked
-  );
-  const [isSha384Checked, setIsSha384Checked] = React.useState(
-    initialValues.isSha384Checked
-  );
-  const [isSha512Checked, setIsSha512Checked] = React.useState(
-    initialValues.isSha512Checked
-  );
-  const [digit6, setdigit6] = React.useState(initialValues.digit6);
-  const [digit8, setdigit8] = React.useState(initialValues.digit8);
+  const [tokenType, setTokenType] = React.useState(initialValues.tokenType);
+  const [tokenAlgorithm, setTokenAlgorithm] = React.useState(initialValues.tokenAlgorithm);
+  const [tokenDigits, setTokenDigits] = React.useState(initialValues.tokenDigits);
 
-  const onChangeTimeBased = (checked: boolean) => {
-    setIsTimeBasedChecked(checked);
-    setIsCounterBasedChecked(!checked);
+  const onTokenTypeChange = (checked: boolean, value: string) => {
+    if (checked) {
+      setTokenType(value);
+    }
   };
 
-  const onChangeCounterBased = (checked: boolean) => {
-    setIsCounterBasedChecked(checked);
-    setIsTimeBasedChecked(!checked);
-  };
+  const onTokenAlgorithmChange = (checked: boolean, value: string) => {
+    if (checked) {
+      setTokenAlgorithm(value);
+    }
+  }
 
-  const onChangeSha1 = (checked: boolean) => {
-    setIsSha1Checked(checked);
-    setIsSha256Checked(!checked);
-    setIsSha384Checked(!checked);
-    setIsSha512Checked(!checked);
-  };
-
-  const onChangeSha256 = (checked: boolean) => {
-    setIsSha1Checked(!checked);
-    setIsSha256Checked(checked);
-    setIsSha384Checked(!checked);
-    setIsSha512Checked(!checked);
-  };
-
-  const onChangeSha384 = (checked: boolean) => {
-    setIsSha1Checked(!checked);
-    setIsSha256Checked(!checked);
-    setIsSha384Checked(checked);
-    setIsSha512Checked(!checked);
-  };
-
-  const onChangeSha512 = (checked: boolean) => {
-    setIsSha1Checked(!checked);
-    setIsSha256Checked(!checked);
-    setIsSha384Checked(!checked);
-    setIsSha512Checked(checked);
-  };
-
-  const onChangeDigit6 = (checked: boolean) => {
-    setdigit6(checked);
-    setdigit8(!checked);
-  };
-
-  const onChangeDigit8 = (checked: boolean) => {
-    setdigit8(checked);
-    setdigit6(!checked);
-  };
+  const onTokenDigitsChange = (checked: boolean, value: string) => {
+    if (checked) {
+      setTokenDigits(value);
+    }
+  }
 
   const typeComponent: JSX.Element = (
     <Flex>
       <FlexItem>
         <Radio
-          isChecked={isTimeBasedChecked}
+          isChecked={tokenType === "totp"}
           name="totp"
-          onChange={onChangeTimeBased}
+          onChange={(checked) => onTokenTypeChange(checked, "totp")}
           label="Time-based (TOTP)"
           id="time-based-radio"
         />
       </FlexItem>
       <FlexItem>
         <Radio
-          isChecked={isCounterBasedChecked}
+          isChecked={tokenType === "hotp"}
           name="hotp"
-          onChange={onChangeCounterBased}
+          onChange={(checked) => onTokenTypeChange(checked, "hotp")}
           label="Counter-based (HOTP)"
           id="counter-based-radio"
         />
@@ -181,36 +128,36 @@ const AddOtpToken = (props: PropsToAddOtpToken) => {
     <Flex>
       <FlexItem>
         <Radio
-          isChecked={isSha1Checked}
+          isChecked={tokenAlgorithm === "sha1"}
           name="sha1"
-          onChange={onChangeSha1}
+          onChange={(checked) => onTokenAlgorithmChange(checked, "sha1")}
           label="sha1"
           id="sha1-radio"
         />
       </FlexItem>
       <FlexItem>
         <Radio
-          isChecked={isSha256Checked}
+          isChecked={tokenAlgorithm === "sha256"}
           name="sha256"
-          onChange={onChangeSha256}
+          onChange={(checked) => onTokenAlgorithmChange(checked, "sha256")}
           label="sha256"
           id="sha256-radio"
         />
       </FlexItem>
       <FlexItem>
         <Radio
-          isChecked={isSha384Checked}
+          isChecked={tokenAlgorithm === "sha384"}
           name="sha384"
-          onChange={onChangeSha384}
+          onChange={(checked) => onTokenAlgorithmChange(checked, "sha384")}
           label="sha384"
           id="sha384-radio"
         />
       </FlexItem>
       <FlexItem>
         <Radio
-          isChecked={isSha512Checked}
+          isChecked={tokenAlgorithm === "sha512"}
           name="sha512"
-          onChange={onChangeSha512}
+          onChange={(checked) => onTokenAlgorithmChange(checked, "sha512")}
           label="sha512"
           id="sha512-radio"
         />
@@ -222,18 +169,18 @@ const AddOtpToken = (props: PropsToAddOtpToken) => {
     <Flex>
       <FlexItem>
         <Radio
-          isChecked={digit6}
+          isChecked={tokenDigits === "6"}
           name="6"
-          onChange={onChangeDigit6}
+          onChange={(checked) => onTokenDigitsChange(checked, "6")}
           label="6"
           id="6-radio"
         />
       </FlexItem>
       <FlexItem>
         <Radio
-          isChecked={digit8}
+          isChecked={tokenDigits === "8"}
           name="8"
-          onChange={onChangeDigit8}
+          onChange={(checked) => onTokenDigitsChange(checked, "8")}
           label="8"
           id="8-radio"
         />
@@ -441,7 +388,7 @@ const AddOtpToken = (props: PropsToAddOtpToken) => {
           value={clockInterval}
           onChange={(value) => setClockInterval(value)}
           className="pf-u-mb-md"
-          isDisabled={!isTimeBasedChecked}
+          isDisabled={tokenType === "hotp"}
         />
       ),
     },
@@ -450,10 +397,8 @@ const AddOtpToken = (props: PropsToAddOtpToken) => {
   // Return the updated values (taking as reference the initial ones)
   const getModifiedValues = () => {
     const modifiedValues = {};
-    if (isTimeBasedChecked) {
-      modifiedValues["type"] = "totp";
-    } else {
-      modifiedValues["type"] = "hotp";
+    if (tokenType !== initialValues.tokenType) {
+      modifiedValues["type"] = tokenType;
     }
     if (description !== initialValues.description) {
       modifiedValues["description"] = description;
@@ -479,19 +424,11 @@ const AddOtpToken = (props: PropsToAddOtpToken) => {
     if (key !== initialValues.key) {
       modifiedValues["key"] = key;
     }
-    if (isSha1Checked) {
-      modifiedValues["ipatokenotpalgorithm"] = "sha1";
-    } else if (isSha256Checked) {
-      modifiedValues["ipatokenotpalgorithm"] = "sha256";
-    } else if (isSha384Checked) {
-      modifiedValues["ipatokenotpalgorithm"] = "sha384";
-    } else if (isSha512Checked) {
-      modifiedValues["ipatokenotpalgorithm"] = "sha512";
+    if (tokenAlgorithm !== initialValues.tokenAlgorithm) {
+      modifiedValues["ipatokenotpalgorithm"] = tokenAlgorithm;
     }
-    if (digit6) {
-      modifiedValues["ipatokenotpdigits"] = "6";
-    } else {
-      modifiedValues["ipatokenotpdigits"] = "8";
+    if (tokenDigits !== initialValues.tokenDigits) {
+      modifiedValues["ipatokenotpdigits"] = tokenDigits;
     }
     if (clockInterval !== initialValues.clockInterval) {
       modifiedValues["ipatokentotptimestep"] = clockInterval;
@@ -555,8 +492,7 @@ const AddOtpToken = (props: PropsToAddOtpToken) => {
 
   // Reset fields
   const resetFields = () => {
-    setIsTimeBasedChecked(initialValues.isTimeBasedChecked);
-    setIsCounterBasedChecked(initialValues.isCounterBasedChecked);
+    setTokenType(initialValues.tokenType);
     setUniqueId(initialValues.uniqueId);
     setDescription(initialValues.description);
     setSelectedOwner(initialValues.selectedOwner);
@@ -566,12 +502,8 @@ const AddOtpToken = (props: PropsToAddOtpToken) => {
     setVendor(initialValues.vendor);
     setSerial(initialValues.serial);
     setKey(initialValues.key);
-    setIsSha1Checked(initialValues.isSha1Checked);
-    setIsSha256Checked(initialValues.isSha256Checked);
-    setIsSha384Checked(initialValues.isSha384Checked);
-    setIsSha512Checked(initialValues.isSha512Checked);
-    setdigit6(initialValues.digit6);
-    setdigit8(initialValues.digit8);
+    setTokenAlgorithm(initialValues.tokenAlgorithm);
+    setTokenDigits(initialValues.tokenDigits);
     setClockInterval(initialValues.clockInterval);
   };
 
