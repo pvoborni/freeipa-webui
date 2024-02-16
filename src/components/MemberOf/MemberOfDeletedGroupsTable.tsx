@@ -10,8 +10,8 @@ import TableLayout from "src/components/layouts/TableLayout";
 //   an extra interface 'MemberOfElement' will be defined. This will be assigned in the
 //   'PropsToDeleteOnTable' interface instead of each type (UserGroup | Netgroup | Roles
 //   | HBACRules | SudoRules).
-interface MemberOfElement {
-  name: string;
+export interface MemberOfElement {
+  name?: string;
   gid?: string;
   status?: string;
   description: string;
@@ -20,7 +20,7 @@ interface MemberOfElement {
 // Interface for Column names
 // All variables are defined as optional as it won't need to be explicitely defined when
 //   generating the column names (on 'generateColumnNames()')
-interface ColumnNames {
+export interface ColumnNames {
   name?: string;
   gid?: string;
   status?: string;
@@ -28,12 +28,14 @@ interface ColumnNames {
 }
 
 interface PropsToDeleteOnTable {
-  groupsToDelete: MemberOfElement[];
-  tabName: string;
+  itemsToDelete: MemberOfElement[];
+  tableHeaders?: ColumnNames; // TODO: Make this prop mandatory when all tabs have been adapted to the C.L.
+  tabName?: string; // TODO: Remove when all tabs have been adapted to the C.L.
 }
 
 const MemberOfDeletedGroupsTable = (props: PropsToDeleteOnTable) => {
   // Function to generate the column names
+  // TODO: Remove when all tabs have been adapted to the C.L.
   const generateColumnNames = () => {
     switch (props.tabName) {
       case "User groups":
@@ -69,23 +71,45 @@ const MemberOfDeletedGroupsTable = (props: PropsToDeleteOnTable) => {
     }
   };
 
-  // Column names state
+  // TODO: Remove when all tabs have been adapted to the C.L.
   const [columnNames] = useState<ColumnNames>(generateColumnNames());
 
-  // Define table header and body
-  const header = (
-    <Tr>
-      {columnNames.name && <Th modifier="wrap">{columnNames.name}</Th>}
-      {columnNames.gid && <Th modifier="wrap">{columnNames.gid}</Th>}
-      {columnNames.status && <Th modifier="wrap">{columnNames.status}</Th>}
-      {columnNames.description && (
-        <Th modifier="wrap">{columnNames.description}</Th>
-      )}
-    </Tr>
-  );
+  const header = () => {
+    console.log("props.tableHeaders: ", props.tableHeaders);
+    if (props.tableHeaders) {
+      return (
+        <Tr>
+          {props.tableHeaders.name && (
+            <Th modifier="wrap">{props.tableHeaders.name}</Th>
+          )}
+          {props.tableHeaders.gid && (
+            <Th modifier="wrap">{props.tableHeaders.gid}</Th>
+          )}
+          {props.tableHeaders.status && (
+            <Th modifier="wrap">{props.tableHeaders.status}</Th>
+          )}
+          {props.tableHeaders.description && (
+            <Th modifier="wrap">{props.tableHeaders.description}</Th>
+          )}
+        </Tr>
+      );
+    } else if (props.tabName) {
+      // TODO: Remove when all tabs have been adapted to the C.L.
+      return (
+        <Tr>
+          {columnNames.name && <Th modifier="wrap">{columnNames.name}</Th>}
+          {columnNames.gid && <Th modifier="wrap">{columnNames.gid}</Th>}
+          {columnNames.status && <Th modifier="wrap">{columnNames.status}</Th>}
+          {columnNames.description && (
+            <Th modifier="wrap">{columnNames.description}</Th>
+          )}
+        </Tr>
+      );
+    }
+  };
 
-  const body = props.groupsToDelete.map((group) => (
-    <Tr key={group.name} id={group.name}>
+  const body = props.itemsToDelete.map((group) => (
+    <Tr key={"delete-items-table"} id={"delete-items-table"}>
       {group.name && <Td dataLabel={group.name}>{group.name}</Td>}
       {group.gid && <Td dataLabel={group.gid}>{group.gid}</Td>}
       {group.status && <Td dataLabel={group.status}>{group.status}</Td>}
@@ -95,7 +119,6 @@ const MemberOfDeletedGroupsTable = (props: PropsToDeleteOnTable) => {
     </Tr>
   ));
 
-  // Render 'MemberOfDeletedGroupsTable'
   return (
     <TableLayout
       ariaLabel={"Remove groups table"}
@@ -104,7 +127,7 @@ const MemberOfDeletedGroupsTable = (props: PropsToDeleteOnTable) => {
       hasBorders={true}
       tableId={"remove-groups-table"}
       isStickyHeader={true}
-      tableHeader={header}
+      tableHeader={header()}
       tableBody={body}
     />
   );

@@ -11,6 +11,8 @@ import MemberOfToolbarUserGroups, {
 } from "./MemberOfToolbar";
 import MemberOfUserGroupsTable from "./MemberOfTableUserGroups";
 import MemberOfAddModal, { AvailableItems } from "./MemberOfAddModal";
+import MemberOfDeleteModal from "./MemberOfDeleteModal";
+import { ColumnNames, MemberOfElement } from "./MemberOfDeletedGroupsTable";
 
 function paginate<Type>(array: Type[], page: number, perPage: number): Type[] {
   const startIdx = (page - 1) * perPage;
@@ -97,6 +99,45 @@ const MemberOfUserGroups = (props: MemberOfUserGroupsProps) => {
     props.updateUsersGroupsFromUser(updatedGroups);
   };
 
+  // 'Delete' function
+  const onDeleteUserGroup = () => {
+    const updatedGroups = props.usersGroupsFromUser.filter(
+      (group) => !groupsNamesSelected.includes(group.name)
+    );
+    props.updateUsersGroupsFromUser(updatedGroups);
+  };
+
+  // Given a single group name, obtain full info to be sent and shown on the deletion table
+  const getGroupInfoByName = (groupName: string) => {
+    const userGroupFullInfo = props.usersGroupsFromUser.filter(
+      (group) => group.name === groupName
+    );
+    return userGroupFullInfo[0];
+  };
+
+  // Obtain full info of groups to delete
+  const getFullInfoItemsToDelete = () => {
+    const groupsToDelete: MemberOfElement[] = [];
+    groupsNamesSelected.map((groupName) => {
+      const groupFullInfo = getGroupInfoByName(groupName);
+      groupsToDelete.push({
+        name: groupFullInfo.name,
+        description: groupFullInfo.description,
+        gid: groupFullInfo.gid,
+      });
+    });
+    return groupsToDelete;
+  };
+
+  const itemsToDeleteFullInfo: MemberOfElement[] = getFullInfoItemsToDelete();
+
+  // Prepare table headers for the delete modal
+  const deleteTableHeaders = {
+    name: "Name",
+    description: "Description",
+    gid: "GID",
+  } as ColumnNames;
+
   return (
     <>
       <MemberOfToolbarUserGroups
@@ -140,6 +181,19 @@ const MemberOfUserGroups = (props: MemberOfUserGroupsProps) => {
           availableItems={availableUserGroupsItems}
           onAdd={onAddUserGroup}
           onSearchTextChange={setSearchValue}
+        />
+      )}
+      {showDeleteModal && someItemSelected && (
+        <MemberOfDeleteModal
+          showModal={showDeleteModal}
+          onCloseModal={() => setShowDeleteModal(false)}
+          tabName="User groups"
+          itemsToDelete={groupsNamesSelected}
+          updateItemsToDelete={setGroupsNamesSelected}
+          itemsToDeleteFullInfo={itemsToDeleteFullInfo}
+          groupRepository={availableUserGroupsItems}
+          onDelete={onDeleteUserGroup}
+          tableHeaders={deleteTableHeaders}
         />
       )}
     </>
