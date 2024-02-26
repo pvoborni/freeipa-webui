@@ -107,37 +107,6 @@ const MemberOfUserGroups = (props: MemberOfUserGroupsProps) => {
     props.updateUsersGroupsFromUser(updatedGroups);
   };
 
-  // Given a single group name, obtain full info to be sent and shown on the deletion table
-  const getGroupInfoByName = (groupName: string) => {
-    const userGroupFullInfo = props.usersGroupsFromUser.filter(
-      (group) => group.name === groupName
-    );
-    return userGroupFullInfo[0];
-  };
-
-  // Obtain full info of groups to delete
-  const getFullInfoItemsToDelete = () => {
-    const groupsToDelete: MemberOfElement[] = [];
-    groupsNamesSelected.map((groupName) => {
-      const groupFullInfo = getGroupInfoByName(groupName);
-      groupsToDelete.push({
-        name: groupFullInfo.name,
-        description: groupFullInfo.description,
-        gid: groupFullInfo.gid,
-      });
-    });
-    return groupsToDelete;
-  };
-
-  const itemsToDeleteFullInfo: MemberOfElement[] = getFullInfoItemsToDelete();
-
-  // Prepare table headers for the delete modal
-  const deleteTableHeaders = {
-    name: "Name",
-    description: "Description",
-    gid: "GID",
-  } as ColumnNames;
-
   return (
     <>
       <MemberOfToolbarUserGroups
@@ -187,14 +156,19 @@ const MemberOfUserGroups = (props: MemberOfUserGroupsProps) => {
         <MemberOfDeleteModal
           showModal={showDeleteModal}
           onCloseModal={() => setShowDeleteModal(false)}
-          tabName="User groups"
-          itemsToDelete={groupsNamesSelected}
-          updateItemsToDelete={setGroupsNamesSelected}
-          itemsToDeleteFullInfo={itemsToDeleteFullInfo}
-          groupRepository={availableUserGroupsItems}
+          title="Delete user from user groups"
           onDelete={onDeleteUserGroup}
-          tableHeaders={deleteTableHeaders}
-        />
+        >
+          <MemberOfUserGroupsTable
+            userGroups={
+              props.usersGroupsFromUser.filter((group) =>
+                groupsNamesSelected.includes(group.name)
+              ) as UserGroup[]
+            }
+
+            showTableRows
+          />
+        </MemberOfDeleteModal>
       )}
     </>
   );
